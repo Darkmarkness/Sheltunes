@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jazz Theory Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        jazz: {
+                            50: '#f4f6f8',
+                            100: '#e5e9f0',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            800: '#1e1b4b',
+                            900: '#0f172a',
+                            accent: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth iOS overscroll disabling & custom styling */
+        body {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .chord-input:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+        }
+        .triangle-symbol {
+            font-size: 1.1em;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col justify-between select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/60 sticky top-0 z-20 px-3 py-2">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-indigo-500/30">
+                    🎷
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm leading-tight text-white">Sheltunes</h1>
+                    <p class="text-[10px] text-slate-400">ii - V - I Workout</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex bg-slate-900/80 p-0.5 rounded-lg border border-slate-700/50">
+                <button id="tab-quiz" onclick="switchTab('quiz')" class="px-2.5 py-1 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm">
+                    Quiz
+                </button>
+                <button id="tab-routine" onclick="switchTab('routine')" class="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                    Routine
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md w-full mx-auto flex-1 p-3 flex flex-col justify-start gap-3 overflow-y-auto">
+
+        <!-- QUIZ VIEW -->
+        <section id="view-quiz" class="flex-1 flex flex-col justify-start gap-2.5">
+            
+            <!-- Header Controls & Progress -->
+            <div class="bg-slate-800/50 rounded-xl p-2 border border-slate-700/40 flex items-center justify-between text-xs text-slate-300">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-slate-400 text-[11px]">Mode:</span>
+                    <select id="progression-mode" onchange="resetQuiz()" class="bg-slate-900 border border-slate-700 rounded-md px-1.5 py-0.5 text-xs text-white font-medium focus:outline-none">
+                        <option value="major">Major ii - V - I</option>
+                        <option value="minor">Minor ii - V - i</option>
+                        <option value="mixed">Mixed Major & Minor</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-1.5 border-l border-slate-700/50 pl-2">
+                    <select id="circle-direction" onchange="resetQuiz()" class="bg-slate-900 border border-slate-700 rounded-md px-1 py-0.5 text-[11px] text-white font-medium focus:outline-none">
+                        <option value="4ths">Circle 4ths</option>
+                        <option value="5ths">Circle 5ths</option>
+                        <option value="random">Random</option>
+                    </select>
+                    <div class="flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-700/50 text-xs">
+                        <span class="text-emerald-400 font-bold" id="score-correct">0</span>
+                        <span class="text-slate-500">/</span>
+                        <span class="text-slate-300 font-medium" id="score-total">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Display Card -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-xl flex flex-col gap-2.5 relative">
+                <!-- Key Indicator Banner -->
+                <div class="flex justify-between items-center border-b border-slate-700/60 pb-1.5">
+                    <span id="key-label" class="text-[11px] font-bold uppercase tracking-wider text-slate-300 bg-slate-900/80 border border-slate-700/80 px-2.5 py-0.5 rounded-full">
+                        Major Progression
+                    </span>
+                    <span id="feedback-badge" class="hidden text-xs font-bold px-2 py-0.5 rounded-full"></span>
+                </div>
+
+                <!-- 3-Column ii-V-I Table Grid -->
+                <div class="grid grid-cols-3 gap-1.5 text-center my-1">
+                    <!-- Column ii -->
+                    <div class="flex flex-col gap-1">
+                        <div class="bg-slate-900/90 py-1 rounded-lg border border-slate-700/50">
+                            <span id="label-ii" class="italic font-mono font-bold text-slate-300 text-sm">ii</span>
+                        </div>
+                        <div id="box-ii" class="min-h-[52px] bg-slate-900 border-2 border-slate-700 rounded-xl flex items-center justify-center p-1 relative transition-all">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Column V -->
+                    <div class="flex flex-col gap-1">
+                        <div class="bg-slate-900/90 py-1 rounded-lg border border-slate-700/50">
+                            <span id="label-v" class="italic font-mono font-bold text-slate-300 text-sm">V</span>
+                        </div>
+                        <div id="box-v" class="min-h-[52px] bg-slate-900 border-2 border-slate-700 rounded-xl flex items-center justify-center p-1 relative transition-all">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Column I -->
+                    <div class="flex flex-col gap-1">
+                        <div class="bg-slate-900/90 py-1 rounded-lg border border-slate-700/50">
+                            <span id="label-i" class="italic font-mono font-bold text-slate-300 text-sm">I</span>
+                        </div>
+                        <div id="box-i" class="min-h-[52px] bg-slate-900 border-2 border-slate-700 rounded-xl flex items-center justify-center p-1 relative transition-all">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incorrect Answer Solution Reveal Box -->
+                <div id="solution-box" class="hidden bg-slate-900/90 border border-amber-500/40 rounded-xl p-2 text-xs text-slate-300 flex flex-col gap-0.5">
+                    <span class="text-amber-400 font-semibold text-[11px]">Correct Progression:</span>
+                    <div id="solution-text" class="font-mono text-xs text-white font-bold tracking-wider"></div>
+                </div>
+            </div>
+
+            <!-- Custom Jazz Keyboard / Helper Shortcut Bar -->
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                    <span>Quick Symbols:</span>
+                    <span class="text-[10px] text-slate-500"><code class="bg-slate-800 px-1 rounded">-</code> = Minor, <code class="bg-slate-800 px-1 rounded">^</code> = Δ</span>
+                </div>
+                
+                <!-- Quick Symbol Buttons -->
+                <div class="grid grid-cols-7 gap-1">
+                    <button onclick="insertSymbol('Δ')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-indigo-300 border border-slate-700 font-bold py-2 rounded-lg text-base shadow transition-all flex items-center justify-center" title="Major 7th">
+                        Δ
+                    </button>
+                    <button onclick="insertSymbol('-')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-amber-300 border border-slate-700 font-bold py-2 rounded-lg text-base shadow transition-all flex items-center justify-center" title="Minor">
+                        -
+                    </button>
+                    <button onclick="insertSymbol('7')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 border border-slate-700 font-bold py-2 rounded-lg text-sm shadow transition-all flex items-center justify-center">
+                        7
+                    </button>
+                    <button onclick="insertSymbol('♭')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 border border-slate-700 font-bold py-2 rounded-lg text-sm shadow transition-all flex items-center justify-center">
+                        ♭
+                    </button>
+                    <button onclick="insertSymbol('#')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 border border-slate-700 font-bold py-2 rounded-lg text-sm shadow transition-all flex items-center justify-center">
+                        #
+                    </button>
+                    <button onclick="insertSymbol('ø')" class="bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-300 border border-slate-700 font-bold py-2 rounded-lg text-sm shadow transition-all flex items-center justify-center" title="Half-diminished">
+                        ø
+                    </button>
+                    <button onclick="clearActiveInput()" class="bg-slate-800 hover:bg-rose-900/60 active:bg-rose-600 text-rose-400 border border-slate-700 font-semibold py-2 rounded-lg text-xs shadow transition-all flex items-center justify-center">
+                        ⌫
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2 pt-1 pb-2">
+                <button id="btn-submit" onclick="checkAnswers()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2">
+                    <span>Check Answers</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                </button>
+                <button id="btn-next" onclick="nextQuestion()" class="hidden flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg shadow-emerald-600/30 transition-all items-center justify-center gap-2">
+                    <span>Next Progression</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- PRACTICE ROUTINE VIEW -->
+        <section id="view-routine" class="hidden flex-1 flex flex-col gap-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-700/60 pb-2">
+                    <h2 class="font-bold text-base text-white flex items-center gap-2">
+                        <span>📋</span> Daily Jazz Routine
+                    </h2>
+                    <span class="text-xs bg-amber-500/20 text-amber-300 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
+                        Balanced Module
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">
+                    Based on your practice spreadsheet. Use this routine to keep your technical and theoretical practice well balanced.
+                </p>
+
+                <!-- Routine Checklist -->
+                <div class="space-y-3" id="routine-list">
+                    <!-- Item 1 -->
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700/50 flex items-start gap-3">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-800 border-slate-600">
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h3 class="text-sm font-semibold text-slate-200">Major ii - V - I Spells</h3>
+                                <span class="text-xs font-mono text-indigo-400 font-medium">10 mins</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Recite & spell major ii-V-I's around the Circle of 4ths using this quiz module.</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700/50 flex items-start gap-3">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-800 border-slate-600">
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h3 class="text-sm font-semibold text-slate-200">Minor ii - V - i Spells</h3>
+                                <span class="text-xs font-mono text-indigo-400 font-medium">10 mins</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Focus on iiø7 - V7(♭9) - i-7 progressions in all 12 keys.</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700/50 flex items-start gap-3">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-800 border-slate-600">
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h3 class="text-sm font-semibold text-slate-200">Voice Leading & Shell Voicings</h3>
+                                <span class="text-xs font-mono text-indigo-400 font-medium">15 mins</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Play 3rd and 7th guide tones connecting 7th chords around the Circle.</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700/50 flex items-start gap-3">
+                        <input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-800 border-slate-600">
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h3 class="text-sm font-semibold text-slate-200">Repertoire Practice</h3>
+                                <span class="text-xs font-mono text-indigo-400 font-medium">25 mins</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Apply ii-V-I voicings to a standard (e.g., Autumn Leaves, Tune Up, All The Things You Are).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Circle Reference Cheat Sheet -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl">
+                <h3 class="font-bold text-sm text-slate-200 mb-2">Circle of 4ths Reference</h3>
+                <div class="font-mono text-xs text-slate-400 bg-slate-900 p-3 rounded-xl border border-slate-700/50 text-center leading-relaxed">
+                    C → F → B♭ → E♭ → A♭ → D♭ → G♭/F♯ → B → E → A → D → G
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-2 text-[11px] text-slate-500 border-t border-slate-800/80">
+        Created by Darkmarkness • Personal Practice Tool
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Major ii - V - I Progressions (Circle of 4ths)
+        const majorProgressions = [
+            { key: "C Major",  type: "major", ii: ["D-7", "Dm7", "D-"], V: ["G7"], I: ["CΔ7", "Cmaj7", "CΔ", "CM7"] },
+            { key: "F Major",  type: "major", ii: ["G-7", "Gm7", "G-"], V: ["C7"], I: ["FΔ7", "Fmaj7", "FΔ", "FM7"] },
+            { key: "B♭ Major", type: "major", ii: ["C-7", "Cm7", "C-"], V: ["F7"], I: ["BbΔ7", "Bbmaj7", "BbΔ", "BbM7", "B♭Δ7", "B♭maj7", "B♭Δ"] },
+            { key: "E♭ Major", type: "major", ii: ["F-7", "Fm7", "F-"], V: ["Bb7", "B♭7"], I: ["EbΔ7", "Ebmaj7", "EbΔ", "EbM7", "E♭Δ7", "E♭maj7", "E♭Δ"] },
+            { key: "A♭ Major", type: "major", ii: ["Bb-7", "Bbm7", "Bb-", "B♭-7", "B♭m7", "B♭-"], V: ["Eb7", "E♭7"], I: ["AbΔ7", "Abmaj7", "AbΔ", "AbM7", "A♭Δ7", "A♭maj7", "A♭Δ"] },
+            { key: "D♭ Major", type: "major", ii: ["Eb-7", "Ebm7", "Eb-", "E♭-7", "E♭m7", "E♭-"], V: ["Ab7", "A♭7"], I: ["DbΔ7", "Dbmaj7", "DbΔ", "DbM7", "D♭Δ7", "D♭maj7", "D♭Δ"] },
+            { key: "G♭ Major", type: "major", ii: ["Ab-7", "Abm7", "Ab-", "A♭-7", "A♭m7", "A♭-"], V: ["Db7", "D♭7"], I: ["GbΔ7", "Gbmaj7", "GbΔ", "GbM7", "G♭Δ7", "G♭maj7", "G♭Δ"] },
+            { key: "B Major",  type: "major", ii: ["C#-7", "C#m7", "C#-", "Db-7", "Dbm7"], V: ["F#7", "Gb7"], I: ["BΔ7", "Bmaj7", "BΔ", "BM7"] },
+            { key: "E Major",  type: "major", ii: ["F#-7", "F#m7", "F#-"], V: ["B7"], I: ["EΔ7", "Emaj7", "EΔ", "EM7"] },
+            { key: "A Major",  type: "major", ii: ["B-7", "Bm7", "B-"], V: ["E7"], I: ["AΔ7", "Amaj7", "AΔ", "AM7"] },
+            { key: "D Major",  type: "major", ii: ["E-7", "Em7", "E-"], V: ["A7"], I: ["DΔ7", "Dmaj7", "DΔ", "DM7"] },
+            { key: "G Major",  type: "major", ii: ["A-7", "Am7", "A-"], V: ["D7"], I: ["GΔ7", "Gmaj7", "GΔ", "GM7"] }
+        ];
+
+        // Minor iiø7 - V7(♭9) - i-7 Progressions (Circle of 4ths)
+        const minorProgressions = [
+            { key: "C Minor",  type: "minor", ii: ["Dø7", "Dø", "D-7b5", "D-7♭5", "Dm7b5", "Dm7♭5"], V: ["G7b9", "G7♭9", "G7(b9)", "G7(♭9)", "G7alt"], I: ["C-7", "Cm7", "C-", "C-6", "C-Δ7"] },
+            { key: "F Minor",  type: "minor", ii: ["Gø7", "Gø", "G-7b5", "G-7♭5", "Gm7b5", "Gm7♭5"], V: ["C7b9", "C7♭9", "C7(b9)", "C7(♭9)", "C7alt"], I: ["F-7", "Fm7", "F-", "F-6", "F-Δ7"] },
+            { key: "B♭ Minor", type: "minor", ii: ["Cø7", "Cø", "C-7b5", "C-7♭5", "Cm7b5", "Cm7♭5"], V: ["F7b9", "F7♭9", "F7(b9)", "F7(♭9)", "F7alt"], I: ["Bb-7", "Bbm7", "Bb-", "B♭-7", "B♭m7", "B♭-"] },
+            { key: "E♭ Minor", type: "minor", ii: ["Fø7", "Fø", "F-7b5", "F-7♭5", "Fm7b5", "Fm7♭5"], V: ["Bb7b9", "B♭7♭9", "Bb7(b9)", "B♭7(♭9)", "Bb7alt"], I: ["Eb-7", "Ebm7", "Eb-", "E♭-7", "E♭m7", "E♭-"] },
+            { key: "A♭ Minor", type: "minor", ii: ["Bbø7", "B♭ø7", "Bb-7b5", "B♭-7♭5", "Bbm7b5"], V: ["Eb7b9", "E♭7♭9", "Eb7(b9)", "E♭7(♭9)", "Eb7alt"], I: ["Ab-7", "Abm7", "Ab-", "A♭-7", "A♭m7", "A♭-"] },
+            { key: "D♭ Minor", type: "minor", ii: ["Ebø7", "E♭ø7", "Eb-7b5", "E♭-7♭5", "Ebm7b5"], V: ["Ab7b9", "A♭7♭9", "Ab7(b9)", "A♭7(♭9)", "Ab7alt"], I: ["Db-7", "Dbm7", "Db-", "D♭-7", "D♭m7", "D♭-"] },
+            { key: "G♭ Minor", type: "minor", ii: ["Abø7", "A♭ø7", "Ab-7b5", "A♭-7♭5", "Abm7b5"], V: ["Db7b9", "D♭7♭9", "Db7(b9)", "D♭7(♭9)", "Db7alt"], I: ["Gb-7", "Gbm7", "Gb-", "G♭-7", "G♭m7", "G♭-"] },
+            { key: "B Minor",  type: "minor", ii: ["C#ø7", "C#ø", "C#-7b5", "C#-7♭5", "Dbø7"], V: ["F#7b9", "F#7♭9", "F#7(b9)", "Gb7b9"], I: ["B-7", "Bm7", "B-", "B-6"] },
+            { key: "E Minor",  type: "minor", ii: ["F#ø7", "F#ø", "F#-7b5", "F#-7♭5", "F#m7b5"], V: ["B7b9", "B7♭9", "B7(b9)", "B7alt"], I: ["E-7", "Em7", "E-", "E-6"] },
+            { key: "A Minor",  type: "minor", ii: ["Bø7", "Bø", "B-7b5", "B-7♭5", "Bm7b5"], V: ["E7b9", "E7♭9", "E7(b9)", "E7alt"], I: ["A-7", "Am7", "A-", "A-6"] },
+            { key: "D Minor",  type: "minor", ii: ["Eø7", "Eø", "E-7b5", "E-7♭5", "Em7b5"], V: ["A7b9", "A7♭9", "A7(b9)", "A7alt"], I: ["D-7", "Dm7", "D-", "D-6"] },
+            { key: "G Minor",  type: "minor", ii: ["Aø7", "Aø", "A-7b5", "A-7♭5", "Am7b5"], V: ["D7b9", "D7♭9", "D7(b9)", "D7alt"], I: ["G-7", "Gm7", "G-", "G-6"] }
+        ];
+
+        let currentIndex = 0;
+        let currentProgression = null;
+        let givenDegree = 'V'; // ii, V, or I
+        let activeInputId = null;
+        let score = { correct: 0, total: 0 };
+        let isChecked = false;
+
+        function getProgressionKey(deg) {
+            const lower = deg.toLowerCase();
+            if (lower === 'ii') return 'ii';
+            if (lower === 'v') return 'V';
+            if (lower === 'i') return 'I';
+            return deg;
+        }
+
+        window.onload = function() {
+            loadQuestion();
+        };
+
+        function switchTab(tab) {
+            const quizView = document.getElementById('view-quiz');
+            const routineView = document.getElementById('view-routine');
+            const tabQuizBtn = document.getElementById('tab-quiz');
+            const tabRoutineBtn = document.getElementById('tab-routine');
+
+            if (tab === 'quiz') {
+                quizView.classList.remove('hidden');
+                routineView.classList.add('hidden');
+                tabQuizBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
+                tabRoutineBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition-all";
+            } else {
+                quizView.classList.add('hidden');
+                routineView.classList.remove('hidden');
+                tabRoutineBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
+                tabQuizBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition-all";
+            }
+        }
+
+        function getActivePool() {
+            const mode = document.getElementById('progression-mode').value;
+            if (mode === 'minor') return minorProgressions;
+            if (mode === 'major') return majorProgressions;
+            // Mixed mode returns a merged list or alternates
+            return [...majorProgressions, ...minorProgressions];
+        }
+
+        function resetQuiz() {
+            currentIndex = 0;
+            score = { correct: 0, total: 0 };
+            updateScoreDisplay();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isChecked = false;
+            document.getElementById('btn-submit').classList.remove('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('solution-box').classList.add('hidden');
+            
+            const badge = document.getElementById('feedback-badge');
+            badge.className = "hidden text-xs font-bold px-2.5 py-1 rounded-full";
+
+            const pool = getActivePool();
+            const direction = document.getElementById('circle-direction').value;
+            
+            if (direction === 'random') {
+                currentIndex = Math.floor(Math.random() * pool.length);
+            } else {
+                currentIndex = currentIndex % pool.length;
+            }
+
+            currentProgression = pool[currentIndex];
+            const isMinor = currentProgression.type === 'minor';
+            
+            // Mode Badge Indicator (Key hint removed as requested)
+            const keyLabel = document.getElementById('key-label');
+            keyLabel.innerText = isMinor ? 'Minor Progression' : 'Major Progression';
+
+            // Degree Labels (same uniform slate styling)
+            if (isMinor) {
+                document.getElementById('label-ii').innerText = 'iiø7';
+                document.getElementById('label-v').innerText = 'V7(♭9)';
+                document.getElementById('label-i').innerText = 'i-7';
+            } else {
+                document.getElementById('label-ii').innerText = 'ii';
+                document.getElementById('label-v').innerText = 'V';
+                document.getElementById('label-i').innerText = 'I';
+            }
+
+            // Randomly choose which chord degree is given ('ii', 'V', or 'I')
+            const degrees = ['ii', 'V', 'I'];
+            givenDegree = degrees[Math.floor(Math.random() * degrees.length)];
+
+            // Setup Boxes
+            ['ii', 'v', 'i'].forEach((deg) => {
+                const boxElement = document.getElementById(`box-${deg}`);
+                const degreeKey = getProgressionKey(deg);
+                
+                if (degreeKey === givenDegree) {
+                    const givenText = currentProgression[degreeKey][0];
+                    boxElement.innerHTML = `
+                        <span class="font-mono font-extrabold text-xl sm:text-2xl text-white tracking-wide">${givenText}</span>
+                    `;
+                    boxElement.className = "min-h-[64px] bg-slate-900 border-2 border-indigo-500/60 rounded-xl flex items-center justify-center p-2 shadow-inner";
+                } else {
+                    boxElement.innerHTML = `
+                        <input type="text" 
+                            id="input-${deg}" 
+                            onfocus="setActiveInput('input-${deg}')"
+                            oninput="handleInputShortcut(this)"
+                            placeholder="?" 
+                            autocomplete="off" 
+                            autocorrect="off" 
+                            capitalize="off"
+                            spellcheck="false"
+                            class="chord-input w-full h-full bg-slate-950 text-center font-mono font-bold text-lg sm:text-xl text-amber-300 placeholder-slate-600 rounded-lg outline-none border border-slate-700/70 py-1 transition-all">
+                    `;
+                    boxElement.className = "min-h-[64px] bg-slate-900 border-2 border-slate-700 rounded-xl flex items-center justify-center p-1.5 transition-all";
+                }
+            });
+
+            // Set default active input
+            const firstInput = document.querySelector('.chord-input');
+            if (firstInput) {
+                firstInput.focus();
+                activeInputId = firstInput.id;
+            }
+        }
+
+        function setActiveInput(inputId) {
+            activeInputId = inputId;
+        }
+
+        // Shortcut replacements while typing: b -> ♭, ^ -> Δ
+        function handleInputShortcut(inputEl) {
+            let val = inputEl.value;
+            // Replace 'b' with '♭' if after letters/numbers like Ab, Bb, Bb7, b5, b9
+            val = val.replace(/([A-Ga-g759])b/g, '$1♭');
+            // Replace '^' with triangle symbol 'Δ'
+            val = val.replace(/\^/g, 'Δ');
+            inputEl.value = val;
+        }
+
+        function insertSymbol(symbol) {
+            if (!activeInputId) return;
+            const inputEl = document.getElementById(activeInputId);
+            if (!inputEl || inputEl.disabled) return;
+
+            const start = inputEl.selectionStart || inputEl.value.length;
+            const end = inputEl.selectionEnd || inputEl.value.length;
+            const text = inputEl.value;
+
+            inputEl.value = text.substring(0, start) + symbol + text.substring(end);
+            inputEl.focus();
+
+            handleInputShortcut(inputEl);
+        }
+
+        function clearActiveInput() {
+            if (!activeInputId) return;
+            const inputEl = document.getElementById(activeInputId);
+            if (inputEl && !inputEl.disabled) {
+                inputEl.value = '';
+                inputEl.focus();
+            }
+        }
+
+        function normalizeChord(str) {
+            if (!str) return '';
+            return str.trim()
+                .replace(/b/g, '♭')
+                .replace(/maj7/gi, 'Δ7')
+                .replace(/maj/gi, 'Δ')
+                .replace(/m7b5/gi, 'ø7')
+                .replace(/-7b5/gi, 'ø7')
+                .replace(/-7♭5/gi, 'ø7')
+                .replace(/m7/gi, '-7')
+                .replace(/m/g, '-')
+                .replace(/\(b9\)/gi, '♭9')
+                .replace(/\(♭9\)/gi, '♭9')
+                .replace(/b9/gi, '♭9')
+                .toUpperCase();
+        }
+
+        function checkAnswers() {
+            if (isChecked) return;
+
+            let allCorrect = true;
+            const degrees = ['ii', 'v', 'i'];
+
+            degrees.forEach((deg) => {
+                const degreeKey = getProgressionKey(deg);
+                if (degreeKey !== givenDegree) {
+                    const inputEl = document.getElementById(`input-${deg}`);
+                    const boxEl = document.getElementById(`box-${deg}`);
+                    const userVal = inputEl ? inputEl.value.trim() : '';
+                    const validAnswers = currentProgression[degreeKey] || [];
+
+                    const isMatch = validAnswers.some(ans => 
+                        normalizeChord(userVal) === normalizeChord(ans) ||
+                        userVal.toLowerCase() === ans.toLowerCase()
+                    );
+
+                    if (isMatch && userVal !== '') {
+                        boxEl.className = "min-h-[64px] bg-emerald-950/40 border-2 border-emerald-500 rounded-xl flex items-center justify-center p-1.5 transition-all";
+                        if (inputEl) inputEl.className = "chord-input w-full h-full bg-emerald-900/40 text-center font-mono font-bold text-lg sm:text-xl text-emerald-300 rounded-lg outline-none border border-emerald-500/50 py-1";
+                    } else {
+                        allCorrect = false;
+                        boxEl.className = "min-h-[64px] bg-rose-950/40 border-2 border-rose-500 rounded-xl flex items-center justify-center p-1.5 transition-all";
+                        if (inputEl) inputEl.className = "chord-input w-full h-full bg-rose-900/40 text-center font-mono font-bold text-lg sm:text-xl text-rose-300 rounded-lg outline-none border border-rose-500/50 py-1";
+                    }
+                    if (inputEl) inputEl.disabled = true;
+                }
+            });
+
+            score.total++;
+            const badge = document.getElementById('feedback-badge');
+            badge.classList.remove('hidden');
+
+            if (allCorrect) {
+                score.correct++;
+                badge.innerText = "CORRECT! 🎉";
+                badge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+            } else {
+                badge.innerText = "INCORRECT";
+                badge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40";
+                
+                const solBox = document.getElementById('solution-box');
+                const solText = document.getElementById('solution-text');
+                solText.innerText = `${currentProgression.ii[0]}   →   ${currentProgression.V[0]}   →   ${currentProgression.I[0]}`;
+                solBox.classList.remove('hidden');
+            }
+
+            updateScoreDisplay();
+            isChecked = true;
+
+            document.getElementById('btn-submit').classList.add('hidden');
+            document.getElementById('btn-next').classList.remove('hidden');
+            document.getElementById('btn-next').classList.add('flex');
+        }
+
+        function nextQuestion() {
+            const pool = getActivePool();
+            const direction = document.getElementById('circle-direction').value;
+            if (direction === '4ths') {
+                currentIndex = (currentIndex + 1) % pool.length;
+            } else if (direction === '5ths') {
+                currentIndex = (currentIndex - 1 + pool.length) % pool.length;
+            }
+            loadQuestion();
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score-correct').innerText = score.correct;
+            document.getElementById('score-total').innerText = score.total;
+        }
+    </script>
+</body>
+</html>
